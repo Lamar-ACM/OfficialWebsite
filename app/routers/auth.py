@@ -91,7 +91,7 @@ async def discord_callback(
 
     access_token = create_access_token({"sub": user.id, "role": user.role})
     refresh_token = create_refresh_token({"sub": user.id})
-    params = urlencode({"token": access_token, "refresh": refresh_token})
+    params = urlencode({"access_token": access_token, "refresh_token": refresh_token})
     return RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback?{params}")
 
 
