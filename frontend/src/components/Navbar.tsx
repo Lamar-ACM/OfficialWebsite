@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import logo from '../assets/img.png'
 
 export function Navbar() {
   const { user, isAuthenticated, isAdmin, login, logout } = useAuth()
@@ -7,8 +8,8 @@ export function Navbar() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-primary font-bold text-xl">Lamar ACM</span>
+          <Link to="/" className="flex items-center">
+            <img src={logo} alt="Lamar ACM" className="h-9 w-auto" />
           </Link>
           <div className="hidden sm:flex items-center gap-6 text-sm font-medium">
             <NavLink to="/events" className={({ isActive }) => isActive ? 'text-primary' : 'text-gray-600 hover:text-gray-900'}>Events</NavLink>
