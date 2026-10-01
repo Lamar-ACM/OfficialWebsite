@@ -63,7 +63,7 @@ export default function MembershipPage() {
           >
             {checkout.isPending ? 'Redirecting to checkout...' : 'Purchase Membership'}
           </button>
-          <p className="text-xs text-gray-400 mt-3 text-center">Secure payment via Stripe</p>
+          <p className="text-xs text-gray-400 mt-3 text-center">Secure payment powered by Square</p>
         </div>
       )}
     </div>

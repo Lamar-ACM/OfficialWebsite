@@ -20,37 +20,26 @@ async def create_checkout(
 ) -> dict:
     client = get_client()
 
-    # Create an order with reference_id = membership_id so the webhook can find it
-    order_response = client.orders.create(
-        idempotency_key=str(uuid.uuid4()),
-        order={
-            "location_id": settings.SQUARE_LOCATION_ID,
-            "reference_id": membership_id,
-            "line_items": [{
-                "name": "Lamar ACM Membership (1 year)",
-                "quantity": "1",
-                "base_price_money": {
-                    "amount": settings.MEMBERSHIP_PRICE_CENTS,
-                    "currency": "USD",
-                },
-            }],
-        },
-    )
-
-    order_id = order_response.order.id
-
-    # Create a hosted payment link for that order
-    link_body: dict = {
+    # quick_pay creates order + hosted payment link in one call
+    link_kwargs: dict = {
         "idempotency_key": str(uuid.uuid4()),
-        "order_id": order_id,
+        "quick_pay": {
+            "name": "Lamar ACM Membership (1 year)",
+            "price_money": {
+                "amount": settings.MEMBERSHIP_PRICE_CENTS,
+                "currency": "USD",
+            },
+            "location_id": settings.SQUARE_LOCATION_ID,
+        },
         "checkout_options": {
             "redirect_url": success_url,
         },
     }
     if user_email:
-        link_body["pre_populated_data"] = {"buyer_email": user_email}
+        link_kwargs["pre_populated_data"] = {"buyer_email": user_email}
 
-    link_response = client.checkout.payment_links.create(**link_body)
+    link_response = client.checkout.payment_links.create(**link_kwargs)
+    order_id = link_response.payment_link.order_id
     checkout_url = link_response.payment_link.url
 
     return {"checkout_url": checkout_url, "order_id": order_id}
