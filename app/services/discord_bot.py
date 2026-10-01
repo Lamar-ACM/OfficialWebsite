@@ -37,6 +37,21 @@ async def assign_member_role(discord_id: str) -> bool:
         return False
 
 
+async def has_member_role(discord_id: str) -> bool:
+    try:
+        guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
+        if not guild:
+            return False
+        member = guild.get_member(int(discord_id))
+        if not member:
+            member = await guild.fetch_member(int(discord_id))
+        role_id = int(settings.DISCORD_MEMBER_ROLE_ID)
+        return any(r.id == role_id for r in member.roles)
+    except Exception as e:
+        logger.error(f"Failed to check member role for {discord_id}: {e}")
+        return False
+
+
 async def assign_verified_role(discord_id: str) -> bool:
     try:
         guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))

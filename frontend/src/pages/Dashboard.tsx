@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
 import type { Event, Announcement, Membership } from '../types'
@@ -9,7 +10,25 @@ function formatDate(dt: string) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const qc = useQueryClient()
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+
+  const syncRoles = useMutation({
+    mutationFn: () => api.post<{ synced: string[] }>('/auth/sync-roles').then(r => r.data),
+    onSuccess: async (data) => {
+      await refreshUser()
+      qc.invalidateQueries({ queryKey: ['membership'] })
+      if (data.synced.length === 0) {
+        setSyncMsg('No changes — your roles are already up to date.')
+      } else {
+        setSyncMsg(`Synced: ${data.synced.join(', ')} updated from Discord.`)
+      }
+      setTimeout(() => setSyncMsg(null), 4000)
+    },
+    onError: () => setSyncMsg('Sync failed. Try again.'),
+  })
+
   const { data: membership } = useQuery<Membership | null>({
     queryKey: ['membership'],
     queryFn: () => api.get('/membership/me').then(r => r.data)
@@ -29,7 +48,8 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center gap-4">
         {user?.discord_avatar && (
           <div className="relative">
             <img
@@ -49,6 +69,17 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold">Welcome, {user?.discord_username}!</h1>
           <p className="text-gray-500 text-sm">{user?.email}</p>
+        </div>
+      </div>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={() => syncRoles.mutate()}
+            disabled={syncRoles.isPending}
+            className="text-sm bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            {syncRoles.isPending ? 'Syncing...' : '↻ Sync Discord Roles'}
+          </button>
+          {syncMsg && <p className="text-xs text-gray-500">{syncMsg}</p>}
         </div>
       </div>
 

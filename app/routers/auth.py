@@ -166,6 +166,56 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/auth/sync-roles")
+async def sync_roles(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    synced = []
+
+    if settings.DISCORD_BOT_TOKEN:
+        # Sync member role → membership
+        if settings.DISCORD_MEMBER_ROLE_ID:
+            try:
+                from app.services.discord_bot import has_member_role
+                from app.models.membership import Membership
+                mem_result = await db.execute(select(Membership).where(Membership.user_id == current_user.id))
+                membership = mem_result.scalar_one_or_none()
+                already_member = membership is not None and membership.status == "active"
+                if not already_member and await has_member_role(current_user.discord_id):
+                    start = current_user.created_at
+                    if membership is None:
+                        membership = Membership(
+                            id=str(uuid.uuid4()),
+                            user_id=current_user.id,
+                            status="active",
+                            start_date=start,
+                            end_date=start + timedelta(days=365),
+                        )
+                        db.add(membership)
+                    else:
+                        membership.status = "active"
+                        membership.start_date = start
+                        membership.end_date = start + timedelta(days=365)
+                    await db.commit()
+                    synced.append("membership")
+            except Exception:
+                pass
+
+        # Sync verified role
+        if settings.DISCORD_VERIFIED_ROLE_ID:
+            try:
+                from app.services.discord_bot import has_verified_role
+                if await has_verified_role(current_user.discord_id) and not current_user.is_verified:
+                    current_user.is_verified = True
+                    await db.commit()
+                    synced.append("verified")
+            except Exception:
+                pass
+
+    return {"synced": synced}
+
+
 @router.post("/auth/verify")
 async def verify_user(
     token: str = Body(..., embed=True),
