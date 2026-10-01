@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+test.db
+*.db
+.DS_Store
+dist/
+node_modules/
+frontend/dist/
+frontend/node_modules/
+.claude
