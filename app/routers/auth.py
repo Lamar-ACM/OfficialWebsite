@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -88,6 +89,33 @@ async def discord_callback(
     if is_new and user.email:
         from app.services.email_service import send_welcome_email
         send_welcome_email(user.email, user.discord_username)
+
+    # Sync member role from Discord — anyone with the role gets an active membership
+    if settings.DISCORD_BOT_TOKEN and settings.DISCORD_MEMBER_ROLE_ID:
+        try:
+            from app.services.discord_bot import has_member_role
+            from app.models.membership import Membership
+            if await has_member_role(user.discord_id):
+                mem_result = await db.execute(select(Membership).where(Membership.user_id == user.id))
+                membership = mem_result.scalar_one_or_none()
+                if membership is None or membership.status != "active":
+                    start = user.created_at
+                    if membership is None:
+                        membership = Membership(
+                            id=str(uuid.uuid4()),
+                            user_id=user.id,
+                            status="active",
+                            start_date=start,
+                            end_date=start + timedelta(days=365),
+                        )
+                        db.add(membership)
+                    else:
+                        membership.status = "active"
+                        membership.start_date = start
+                        membership.end_date = start + timedelta(days=365)
+                    await db.commit()
+        except Exception:
+            pass
 
     # Sync verified role from Discord
     if settings.DISCORD_BOT_TOKEN and settings.DISCORD_VERIFIED_ROLE_ID:
