@@ -31,11 +31,20 @@ export default function Dashboard() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
       <div className="flex items-center gap-4 mb-8">
         {user?.discord_avatar && (
-          <img
-            src={user.discord_avatar}
-            className="w-14 h-14 rounded-full"
-            alt="avatar"
-          />
+          <div className="relative">
+            <img
+              src={user.discord_avatar}
+              className="w-14 h-14 rounded-full"
+              alt="avatar"
+            />
+            {user?.is_verified && (
+              <span className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-white">
+                <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                </svg>
+              </span>
+            )}
+          </div>
         )}
         <div>
           <h1 className="text-2xl font-bold">Welcome, {user?.discord_username}!</h1>

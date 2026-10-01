@@ -20,11 +20,20 @@ export function Navbar() {
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 {user?.discord_avatar && (
-                  <img
-                    src={user.discord_avatar}
-                    className="w-8 h-8 rounded-full"
-                    alt="avatar"
-                  />
+                  <div className="relative">
+                    <img
+                      src={user.discord_avatar}
+                      className="w-8 h-8 rounded-full"
+                      alt="avatar"
+                    />
+                    {user?.is_verified && (
+                      <span className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center ring-2 ring-white">
+                        <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                        </svg>
+                      </span>
+                    )}
+                  </div>
                 )}
                 <span className="hidden sm:block text-sm text-gray-700">{user?.discord_username}</span>
                 <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-900">Sign out</button>
