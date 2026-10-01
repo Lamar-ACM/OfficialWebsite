@@ -12,6 +12,7 @@ class UserResponse(BaseModel):
     role: str
     created_at: datetime
     is_active: bool
+    is_verified: bool = False
 
     class Config:
         from_attributes = True

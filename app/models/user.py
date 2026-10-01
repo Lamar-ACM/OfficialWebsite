@@ -17,6 +17,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(SAEnum("member", "admin", name="user_role"), default="member")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
     membership: Mapped[Optional["Membership"]] = relationship("Membership", back_populates="user", uselist=False)
     tickets: Mapped[List["Ticket"]] = relationship("Ticket", back_populates="user")

@@ -43,6 +43,18 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {!user?.is_verified && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mb-6 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-yellow-800">Verify your account</p>
+            <p className="text-yellow-700 text-sm mt-0.5">Complete a quick CAPTCHA to get your Verified Discord role.</p>
+          </div>
+          <Link to="/verify" className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ml-4">
+            Verify Now →
+          </Link>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {isActiveMember ? (

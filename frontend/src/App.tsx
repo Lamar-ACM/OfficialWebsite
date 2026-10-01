@@ -18,6 +18,7 @@ import MembershipCancel from './pages/MembershipCancel'
 import Tickets from './pages/Tickets'
 import TicketNew from './pages/TicketNew'
 import TicketDetail from './pages/TicketDetail'
+import Verify from './pages/Verify'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="/membership" element={<ProtectedRoute><Membership /></ProtectedRoute>} />
               <Route path="/membership/success" element={<ProtectedRoute><MembershipSuccess /></ProtectedRoute>} />
               <Route path="/membership/cancel" element={<ProtectedRoute><MembershipCancel /></ProtectedRoute>} />
+              <Route path="/verify" element={<ProtectedRoute><Verify /></ProtectedRoute>} />
               <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
               <Route path="/tickets/new" element={<ProtectedRoute><TicketNew /></ProtectedRoute>} />
               <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetail /></ProtectedRoute>} />

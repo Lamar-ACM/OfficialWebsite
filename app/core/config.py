@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     DISCORD_BOT_TOKEN: str = ""
     DISCORD_GUILD_ID: str = ""
     DISCORD_MEMBER_ROLE_ID: str = ""
+    DISCORD_VERIFIED_ROLE_ID: str = "1195942905144160406"
+    TURNSTILE_SECRET_KEY: str = ""
     SQUARE_ACCESS_TOKEN: str = ""
     SQUARE_LOCATION_ID: str = ""
     SQUARE_WEBHOOK_SIGNATURE_KEY: str = ""

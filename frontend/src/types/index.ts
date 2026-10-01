@@ -6,6 +6,7 @@ export interface User {
   email: string | null
   role: 'member' | 'admin'
   is_active: boolean
+  is_verified: boolean
 }
 
 export interface Membership {

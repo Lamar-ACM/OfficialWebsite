@@ -1,7 +1,7 @@
 import uuid
 from urllib.parse import urlencode
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -89,6 +89,17 @@ async def discord_callback(
         from app.services.email_service import send_welcome_email
         send_welcome_email(user.email, user.discord_username)
 
+    # Sync verified role from Discord
+    if settings.DISCORD_BOT_TOKEN and settings.DISCORD_VERIFIED_ROLE_ID:
+        try:
+            from app.services.discord_bot import has_verified_role
+            if await has_verified_role(user.discord_id) and not user.is_verified:
+                user.is_verified = True
+                await db.commit()
+                await db.refresh(user)
+        except Exception:
+            pass
+
     access_token = create_access_token({"sub": user.id, "role": user.role})
     refresh_token = create_refresh_token({"sub": user.id})
     params = urlencode({"access_token": access_token, "refresh_token": refresh_token})
@@ -125,6 +136,43 @@ async def refresh_token_endpoint(
 @router.get("/users/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/auth/verify")
+async def verify_user(
+    token: str = Body(..., embed=True),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.is_verified:
+        return {"verified": True}
+
+    # Validate Turnstile token
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={
+                "secret": settings.TURNSTILE_SECRET_KEY,
+                "response": token,
+            },
+        )
+        result = resp.json()
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail="CAPTCHA verification failed")
+
+    current_user.is_verified = True
+    await db.commit()
+
+    # Assign Discord verified role
+    if settings.DISCORD_BOT_TOKEN and settings.DISCORD_VERIFIED_ROLE_ID:
+        try:
+            from app.services.discord_bot import assign_verified_role
+            await assign_verified_role(current_user.discord_id)
+        except Exception:
+            pass
+
+    return {"verified": True}
 
 
 @router.post("/auth/logout")
