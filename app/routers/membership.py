@@ -78,15 +78,21 @@ async def square_webhook(
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
     import json
+    import logging
+    logger = logging.getLogger(__name__)
+
     event = json.loads(payload)
     event_type = event.get("type", "")
+    logger.info(f"Square webhook received: type={event_type}")
 
-    if event_type == "payment.created":
+    if event_type in ("payment.created", "payment.updated"):
         payment = event.get("data", {}).get("object", {}).get("payment", {})
-        # Only activate on COMPLETED payments (not PENDING or FAILED)
-        if payment.get("status") != "COMPLETED":
+        payment_status = payment.get("status")
+        logger.info(f"Square webhook payment status={payment_status}")
+        if payment_status != "COMPLETED":
             return {"received": True}
         order_id = payment.get("order_id")
+        logger.info(f"Square webhook order_id={order_id}")
 
         if order_id:
             result = await db.execute(
