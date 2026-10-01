@@ -21,7 +21,7 @@ export function Navbar() {
               <div className="flex items-center gap-3">
                 {user?.discord_avatar && (
                   <img
-                    src={`https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png`}
+                    src={user.discord_avatar}
                     className="w-8 h-8 rounded-full"
                     alt="avatar"
                   />

@@ -32,7 +32,7 @@ export default function Dashboard() {
       <div className="flex items-center gap-4 mb-8">
         {user?.discord_avatar && (
           <img
-            src={`https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png`}
+            src={user.discord_avatar}
             className="w-14 h-14 rounded-full"
             alt="avatar"
           />
