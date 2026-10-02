@@ -98,6 +98,43 @@ async def add_ticket_message(
     await db.refresh(msg)
     return msg
 
+@router.delete("/{ticket_id}")
+async def delete_ticket(
+    ticket_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    ticket = result.scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if current_user.role != "admin" and ticket.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.delete(ticket)
+    await db.commit()
+    return {"deleted": True}
+
+
+@router.delete("/{ticket_id}/messages/{message_id}")
+async def delete_ticket_message(
+    ticket_id: str,
+    message_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(TicketMessage).where(TicketMessage.id == message_id, TicketMessage.ticket_id == ticket_id)
+    )
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if current_user.role != "admin" and msg.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.delete(msg)
+    await db.commit()
+    return {"deleted": True}
+
+
 @router.patch("/{ticket_id}/status", response_model=TicketResponse)
 async def update_ticket_status(
     ticket_id: str,

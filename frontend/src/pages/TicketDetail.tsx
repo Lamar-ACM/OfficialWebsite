@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
@@ -20,6 +20,7 @@ function formatTime(dt: string) {
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [message, setMessage] = useState('')
   const qc = useQueryClient()
 
@@ -41,6 +42,16 @@ export default function TicketDetail() {
     }
   })
 
+  const deleteTicket = useMutation({
+    mutationFn: () => api.delete(`/tickets/${id}`),
+    onSuccess: () => navigate('/tickets')
+  })
+
+  const deleteMsg = useMutation({
+    mutationFn: (msgId: string) => api.delete(`/tickets/${id}/messages/${msgId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ticket-messages', id] })
+  })
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
       <Link to="/tickets" className="text-primary hover:underline text-sm mb-6 inline-block">← Back to Tickets</Link>
@@ -49,9 +60,19 @@ export default function TicketDetail() {
         <div className="mb-6">
           <div className="flex items-start justify-between">
             <h1 className="text-2xl font-bold leading-tight">{ticket.subject}</h1>
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ml-4 shrink-0 ${statusColors[ticket.status]}`}>
-              {ticket.status.replace('_', ' ')}
-            </span>
+            <div className="flex items-center gap-2 ml-4 shrink-0">
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[ticket.status]}`}>
+                {ticket.status.replace('_', ' ')}
+              </span>
+              {(user?.role === 'admin' || ticket.user_id === user?.id) && (
+                <button
+                  onClick={() => { if (window.confirm('Delete this ticket?')) deleteTicket.mutate() }}
+                  className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition-colors"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-gray-600 mt-3 bg-gray-50 rounded-lg p-4 text-sm">{ticket.description}</p>
         </div>
@@ -64,12 +85,31 @@ export default function TicketDetail() {
         )}
         {messages?.map(msg => {
           const isMe = msg.sender_id === user?.id
+          const canDelete = isMe || user?.role === 'admin'
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+            <div key={msg.id} className={`flex items-end gap-2 group ${isMe ? 'justify-end' : 'justify-start'}`}>
+              {isMe && canDelete && (
+                <button
+                  onClick={() => deleteMsg.mutate(msg.id)}
+                  className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity text-xs px-1"
+                  title="Delete message"
+                >
+                  ✕
+                </button>
+              )}
               <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${isMe ? 'bg-primary text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
                 <p>{msg.message}</p>
                 <p className={`text-xs mt-1 ${isMe ? 'text-red-200' : 'text-gray-400'}`}>{formatTime(msg.sent_at)}</p>
               </div>
+              {!isMe && canDelete && (
+                <button
+                  onClick={() => deleteMsg.mutate(msg.id)}
+                  className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity text-xs px-1"
+                  title="Delete message"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           )
         })}
