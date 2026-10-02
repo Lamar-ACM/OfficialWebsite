@@ -14,7 +14,7 @@ const emptyForm: EventForm = {
 }
 
 function toDatetimeLocal(iso: string) {
-  return iso ? new Date(iso).toISOString().slice(0, 16) : ''
+  return iso ? iso.slice(0, 16) : ''
 }
 
 export default function AdminEvents() {
@@ -35,8 +35,8 @@ export default function AdminEvents() {
         title: form.title,
         description: form.description || '',
         location: form.location || null,
-        start_time: new Date(form.start_time).toISOString(),
-        end_time: new Date(form.end_time).toISOString(),
+        start_time: form.start_time,
+        end_time: form.end_time,
         is_member_only: form.is_member_only,
         capacity: form.capacity ? parseInt(form.capacity) : null,
       }
