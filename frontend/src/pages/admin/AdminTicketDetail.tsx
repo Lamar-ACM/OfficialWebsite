@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../lib/api'
@@ -14,6 +14,7 @@ function formatTime(dt: string) {
 export default function AdminTicketDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [message, setMessage] = useState('')
   const qc = useQueryClient()
 
@@ -36,6 +37,11 @@ export default function AdminTicketDetail() {
     }
   })
 
+  const deleteTicket = useMutation({
+    mutationFn: () => api.delete(`/tickets/${id}`),
+    onSuccess: () => navigate('/admin/tickets')
+  })
+
   const updateStatus = useMutation({
     mutationFn: (status: string) => api.patch(`/tickets/${id}/status`, { status }).then(r => r.data),
     onSuccess: () => {
@@ -55,13 +61,19 @@ export default function AdminTicketDetail() {
               <h2 className="text-xl font-semibold">{ticket.subject}</h2>
               <p className="text-sm text-gray-500">Ticket ID: {ticket.id.slice(0, 8)}...</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {statusOptions.map(s => (
                 <button key={s} onClick={() => updateStatus.mutate(s)}
                   className={`text-xs px-3 py-1 rounded-lg transition-colors ${ticket.status === s ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   {s.replace('_', ' ')}
                 </button>
               ))}
+              <button
+                onClick={() => { if (window.confirm('Delete this ticket?')) deleteTicket.mutate() }}
+                className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition-colors"
+              >
+                Delete
+              </button>
             </div>
           </div>
           <p className="text-gray-600 mt-3 bg-gray-50 rounded-lg p-4 text-sm">{ticket.description}</p>
