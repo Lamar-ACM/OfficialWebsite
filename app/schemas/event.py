@@ -1,6 +1,10 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+def _strip_tz(v: datetime) -> datetime:
+    return v.replace(tzinfo=None) if v.tzinfo else v
 
 
 class EventCreate(BaseModel):
@@ -12,6 +16,11 @@ class EventCreate(BaseModel):
     is_member_only: bool = False
     capacity: Optional[int] = None
 
+    @field_validator('start_time', 'end_time', mode='after')
+    @classmethod
+    def strip_timezone(cls, v: datetime) -> datetime:
+        return _strip_tz(v)
+
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -21,6 +30,11 @@ class EventUpdate(BaseModel):
     end_time: Optional[datetime] = None
     is_member_only: Optional[bool] = None
     capacity: Optional[int] = None
+
+    @field_validator('start_time', 'end_time', mode='after')
+    @classmethod
+    def strip_timezone(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return _strip_tz(v) if v else v
 
 
 class EventResponse(BaseModel):
