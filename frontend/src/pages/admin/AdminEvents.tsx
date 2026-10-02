@@ -49,7 +49,12 @@ export default function AdminEvents() {
       setShowForm(false); setEditingId(null); setForm(emptyForm); setError(null)
     },
     onError: (err: any) => {
-      setError(err?.response?.data?.detail || 'Failed to save event. Please try again.')
+      const detail = err?.response?.data?.detail
+      if (Array.isArray(detail)) {
+        setError(detail.map((d: any) => `${d.loc?.join('.')}: ${d.msg}`).join(' | '))
+      } else {
+        setError(detail || `HTTP ${err?.response?.status ?? 'network'}: ${err?.message}`)
+      }
     }
   })
 
