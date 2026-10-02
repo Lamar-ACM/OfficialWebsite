@@ -19,9 +19,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Lamar ACM API", version="1.0.0", lifespan=lifespan)
 
+_origins = {settings.FRONTEND_URL, "https://lamaracm.org", "https://www.lamaracm.org", "https://lamaracm.netlify.app"}
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=list(_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
