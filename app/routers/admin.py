@@ -11,7 +11,14 @@ from app.models.membership import Membership
 from app.models.ticket import Ticket
 from app.models.event import Event
 from app.models.announcement import Announcement
+from pydantic import BaseModel
 from app.schemas.admin import StatsResponse, MemberListItem, MembershipOverride, UserAdminResponse
+
+
+class EmailBlastRequest(BaseModel):
+    subject: str
+    body: str
+    audience: str = "all"  # "all" | "members" | "non_members"
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -128,6 +135,38 @@ async def list_members(
             membership_end_date=membership.end_date if membership else None,
         ))
     return items
+
+@router.post("/email-blast")
+async def send_email_blast(
+    data: EmailBlastRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    result = await db.execute(select(User).where(User.is_active == True, User.email != None))
+    users = result.scalars().all()
+
+    if data.audience == "members":
+        member_ids_result = await db.execute(
+            select(Membership.user_id).where(Membership.status == "active")
+        )
+        member_ids = {r for r in member_ids_result.scalars().all()}
+        users = [u for u in users if u.id in member_ids]
+    elif data.audience == "non_members":
+        member_ids_result = await db.execute(
+            select(Membership.user_id).where(Membership.status == "active")
+        )
+        member_ids = {r for r in member_ids_result.scalars().all()}
+        users = [u for u in users if u.id not in member_ids]
+
+    from app.services.email_service import send_blast
+    sent = 0
+    for user in users:
+        if user.email:
+            if send_blast(user.email, user.discord_username, data.subject, data.body):
+                sent += 1
+
+    return {"sent": sent, "total": len(users)}
+
 
 @router.patch("/users/{user_id}/membership", response_model=MemberListItem)
 async def override_membership(

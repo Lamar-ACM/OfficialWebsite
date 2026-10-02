@@ -59,6 +59,16 @@ def send_ticket_reply(to_email: str, username: str, subject: str, reply: str) ->
         "<p>Log in to continue the conversation.</p>"
     )
 
+def send_blast(to_email: str, username: str, subject: str, body: str) -> bool:
+    html = (
+        f"<h2>Hi {username},</h2>"
+        f"<div style='white-space:pre-wrap'>{body}</div>"
+        "<br><p style='color:#888;font-size:12px'>You received this because you are a Lamar ACM member. "
+        "Log in at lamaracm.org to manage your account.</p>"
+    )
+    return _send(to_email, subject, html)
+
+
 def send_renewal_reminder(to_email: str, username: str, end_date: str) -> bool:
     return _send(
         to_email,

@@ -22,6 +22,7 @@ export default function AdminEvents() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<EventForm>(emptyForm)
+  const [error, setError] = useState<string | null>(null)
 
   const { data: events, isLoading } = useQuery<Event[]>({
     queryKey: ['events'],
@@ -31,7 +32,8 @@ export default function AdminEvents() {
   const save = useMutation({
     mutationFn: () => {
       const payload = {
-        title: form.title, description: form.description,
+        title: form.title,
+        description: form.description || '',
         location: form.location || null,
         start_time: new Date(form.start_time).toISOString(),
         end_time: new Date(form.end_time).toISOString(),
@@ -44,7 +46,10 @@ export default function AdminEvents() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['events'] })
-      setShowForm(false); setEditingId(null); setForm(emptyForm)
+      setShowForm(false); setEditingId(null); setForm(emptyForm); setError(null)
+    },
+    onError: (err: any) => {
+      setError(err?.response?.data?.detail || 'Failed to save event. Please try again.')
     }
   })
 
@@ -101,8 +106,9 @@ export default function AdminEvents() {
               <input type="checkbox" checked={form.is_member_only} onChange={e => setForm({...form, is_member_only: e.target.checked})} />
               Members only
             </label>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
             <div className="flex gap-3">
-              <button onClick={() => save.mutate()} disabled={!form.title || !form.start_time || save.isPending}
+              <button onClick={() => save.mutate()} disabled={!form.title || !form.start_time || !form.end_time || save.isPending}
                 className="bg-primary hover:bg-[#8B0000] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {save.isPending ? 'Saving...' : 'Save'}
               </button>
