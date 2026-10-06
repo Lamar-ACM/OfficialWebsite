@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.database import get_db
 from app.core.deps import require_admin, get_current_user
+from app.core.config import settings
 from app.models.user import User
 from app.models.membership import Membership
 from app.models.ticket import Ticket
@@ -143,7 +144,8 @@ async def sync_discord_roles(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    from app.services.discord_bot import assign_member_role
+    import httpx as _httpx
+    from app.services.discord_bot import DISCORD_API, _bot_headers
 
     result = await db.execute(
         select(User).join(Membership, Membership.user_id == User.id).where(
@@ -154,15 +156,27 @@ async def sync_discord_roles(
     members = result.scalars().all()
 
     assigned = 0
-    failed = 0
-    for user in members:
-        success = await assign_member_role(user.discord_id)
-        if success:
-            assigned += 1
-        else:
-            failed += 1
+    failures = []
+    async with _httpx.AsyncClient() as client:
+        for user in members:
+            url = f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{user.discord_id}/roles/{settings.DISCORD_MEMBER_ROLE_ID}"
+            resp = await client.put(url, headers=_bot_headers())
+            if resp.status_code in (200, 204):
+                assigned += 1
+            else:
+                failures.append({
+                    "user": user.discord_username,
+                    "discord_id": user.discord_id,
+                    "status": resp.status_code,
+                    "detail": resp.text,
+                })
 
-    return {"assigned": assigned, "failed": failed, "total": len(members)}
+    return {
+        "assigned": assigned,
+        "failed": len(failures),
+        "total": len(members),
+        "failures": failures,
+    }
 
 
 @router.post("/email-blast")

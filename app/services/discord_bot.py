@@ -1,10 +1,12 @@
 import asyncio
 import logging
-from typing import Optional
+import httpx
 import discord
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+DISCORD_API = "https://discord.com/api/v10"
 
 intents = discord.Intents.default()
 intents.members = True
@@ -16,108 +18,80 @@ async def on_ready():
     logger.info(f"Discord bot ready: {bot.user}")
 
 
-async def _get_guild():
-    guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
-    if not guild:
-        guild = await bot.fetch_guild(int(settings.DISCORD_GUILD_ID))
-    return guild
+def _bot_headers() -> dict:
+    return {"Authorization": f"Bot {settings.DISCORD_BOT_TOKEN}"}
 
 
 async def assign_member_role(discord_id: str) -> bool:
     try:
-        guild = await _get_guild()
-        if not guild:
-            logger.warning("Guild not found")
-            return False
-        try:
-            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
-        except Exception:
-            logger.warning(f"Member {discord_id} not found in guild")
-            return False
-        role = guild.get_role(int(settings.DISCORD_MEMBER_ROLE_ID))
-        if not role:
-            logger.warning("Member role not found")
-            return False
-        await member.add_roles(role)
-        logger.info(f"Assigned member role to {discord_id}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to assign role to {discord_id}: {e}")
+        url = f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{discord_id}/roles/{settings.DISCORD_MEMBER_ROLE_ID}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.put(url, headers=_bot_headers())
+        if resp.status_code in (200, 204):
+            logger.info(f"Assigned member role to {discord_id}")
+            return True
+        logger.error(f"assign_member_role {discord_id}: {resp.status_code} {resp.text}")
         return False
-
-
-async def has_member_role(discord_id: str) -> bool:
-    try:
-        guild = await _get_guild()
-        if not guild:
-            return False
-        try:
-            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
-        except Exception:
-            return False
-        role_id = int(settings.DISCORD_MEMBER_ROLE_ID)
-        return any(r.id == role_id for r in member.roles)
     except Exception as e:
-        logger.error(f"Failed to check member role for {discord_id}: {e}")
-        return False
-
-
-async def assign_verified_role(discord_id: str) -> bool:
-    try:
-        guild = await _get_guild()
-        if not guild:
-            return False
-        try:
-            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
-        except Exception:
-            logger.warning(f"Member {discord_id} not found in guild")
-            return False
-        role = guild.get_role(int(settings.DISCORD_VERIFIED_ROLE_ID))
-        if not role:
-            logger.warning("Verified role not found")
-            return False
-        await member.add_roles(role)
-        logger.info(f"Assigned verified role to {discord_id}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to assign verified role to {discord_id}: {e}")
-        return False
-
-
-async def has_verified_role(discord_id: str) -> bool:
-    try:
-        guild = await _get_guild()
-        if not guild:
-            return False
-        try:
-            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
-        except Exception:
-            return False
-        role_id = int(settings.DISCORD_VERIFIED_ROLE_ID)
-        return any(r.id == role_id for r in member.roles)
-    except Exception as e:
-        logger.error(f"Failed to check verified role for {discord_id}: {e}")
+        logger.error(f"assign_member_role {discord_id}: {e}")
         return False
 
 
 async def remove_member_role(discord_id: str) -> bool:
     try:
-        guild = await _get_guild()
-        if not guild:
-            return False
-        try:
-            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
-        except Exception:
-            logger.warning(f"Member {discord_id} not found in guild")
-            return False
-        role = guild.get_role(int(settings.DISCORD_MEMBER_ROLE_ID))
-        if not role:
-            return False
-        await member.remove_roles(role)
-        logger.info(f"Removed member role from {discord_id}")
-        return True
+        url = f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{discord_id}/roles/{settings.DISCORD_MEMBER_ROLE_ID}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.delete(url, headers=_bot_headers())
+        if resp.status_code in (200, 204):
+            logger.info(f"Removed member role from {discord_id}")
+            return True
+        logger.error(f"remove_member_role {discord_id}: {resp.status_code} {resp.text}")
+        return False
     except Exception as e:
-        logger.error(f"Failed to remove role from {discord_id}: {e}")
+        logger.error(f"remove_member_role {discord_id}: {e}")
+        return False
+
+
+async def has_member_role(discord_id: str) -> bool:
+    try:
+        url = f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{discord_id}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=_bot_headers())
+        if resp.status_code != 200:
+            return False
+        roles = resp.json().get("roles", [])
+        return str(settings.DISCORD_MEMBER_ROLE_ID) in [str(r) for r in roles]
+    except Exception as e:
+        logger.error(f"has_member_role {discord_id}: {e}")
+        return False
+
+
+async def assign_verified_role(discord_id: str) -> bool:
+    try:
+        url = f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{discord_id}/roles/{settings.DISCORD_VERIFIED_ROLE_ID}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.put(url, headers=_bot_headers())
+        if resp.status_code in (200, 204):
+            logger.info(f"Assigned verified role to {discord_id}")
+            return True
+        logger.error(f"assign_verified_role {discord_id}: {resp.status_code} {resp.text}")
+        return False
+    except Exception as e:
+        logger.error(f"assign_verified_role {discord_id}: {e}")
+        return False
+
+
+async def has_verified_role(discord_id: str) -> bool:
+    try:
+        url = f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{discord_id}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=_bot_headers())
+        if resp.status_code != 200:
+            return False
+        roles = resp.json().get("roles", [])
+        return str(settings.DISCORD_VERIFIED_ROLE_ID) in [str(r) for r in roles]
+    except Exception as e:
+        logger.error(f"has_verified_role {discord_id}: {e}")
         return False
 
 
