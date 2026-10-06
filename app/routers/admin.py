@@ -139,6 +139,72 @@ async def list_members(
         ))
     return items
 
+@router.get("/discord-debug")
+async def discord_debug(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    import httpx as _httpx
+    from app.services.discord_bot import DISCORD_API, _bot_headers
+
+    out = {
+        "env": {
+            "DISCORD_BOT_TOKEN": ("set, ends in ..." + settings.DISCORD_BOT_TOKEN[-6:]) if settings.DISCORD_BOT_TOKEN else "MISSING",
+            "DISCORD_GUILD_ID": settings.DISCORD_GUILD_ID or "MISSING",
+            "DISCORD_MEMBER_ROLE_ID": settings.DISCORD_MEMBER_ROLE_ID or "MISSING",
+        }
+    }
+
+    async with _httpx.AsyncClient() as client:
+        # Bot identity
+        me = await client.get(f"{DISCORD_API}/users/@me", headers=_bot_headers())
+        out["bot_identity"] = me.json() if me.status_code == 200 else {"error": me.status_code, "detail": me.text}
+
+        # Guild + role check + hierarchy check
+        guild_resp = await client.get(f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}", headers=_bot_headers())
+        if guild_resp.status_code == 200:
+            guild_data = guild_resp.json()
+            out["guild"] = {"name": guild_data.get("name")}
+            roles = guild_data.get("roles", [])
+            match = next((r for r in roles if str(r["id"]) == str(settings.DISCORD_MEMBER_ROLE_ID)), None)
+            out["member_role"] = {"found": bool(match), "name": match["name"] if match else None, "position": match["position"] if match else None}
+
+            # Bot's own role positions to check hierarchy
+            if me.status_code == 200:
+                bot_id = me.json().get("id")
+                bot_member = await client.get(f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{bot_id}", headers=_bot_headers())
+                if bot_member.status_code == 200:
+                    bot_role_ids = [str(x) for x in bot_member.json().get("roles", [])]
+                    bot_roles = [r for r in roles if str(r["id"]) in bot_role_ids]
+                    bot_max_pos = max((r["position"] for r in bot_roles), default=0)
+                    member_pos = match["position"] if match else None
+                    out["bot_hierarchy"] = {
+                        "bot_highest_role_position": bot_max_pos,
+                        "member_role_position": member_pos,
+                        "hierarchy_ok": (bot_max_pos > member_pos) if member_pos is not None else False,
+                    }
+        else:
+            out["guild"] = {"error": guild_resp.status_code, "detail": guild_resp.text}
+
+        # Live test: try assigning to one active member right now
+        test_result = await db.execute(
+            select(User).join(Membership, Membership.user_id == User.id).where(
+                Membership.status == "active", User.is_active == True
+            ).limit(1)
+        )
+        test_user = test_result.scalar_one_or_none()
+        if test_user:
+            url = f"{DISCORD_API}/guilds/{settings.DISCORD_GUILD_ID}/members/{test_user.discord_id}/roles/{settings.DISCORD_MEMBER_ROLE_ID}"
+            assign_resp = await client.put(url, headers=_bot_headers())
+            out["live_assign_test"] = {
+                "user": test_user.discord_username,
+                "status": assign_resp.status_code,
+                "response": assign_resp.text or "OK (no body = success)",
+            }
+
+    return out
+
+
 @router.post("/sync-discord-roles")
 async def sync_discord_roles(
     db: AsyncSession = Depends(get_db),
