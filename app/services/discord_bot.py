@@ -16,15 +16,24 @@ async def on_ready():
     logger.info(f"Discord bot ready: {bot.user}")
 
 
+async def _get_guild():
+    guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
+    if not guild:
+        guild = await bot.fetch_guild(int(settings.DISCORD_GUILD_ID))
+    return guild
+
+
 async def assign_member_role(discord_id: str) -> bool:
     try:
-        guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
+        guild = await _get_guild()
         if not guild:
             logger.warning("Guild not found")
             return False
-        member = guild.get_member(int(discord_id))
-        if not member:
-            member = await guild.fetch_member(int(discord_id))
+        try:
+            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
+        except Exception:
+            logger.warning(f"Member {discord_id} not found in guild")
+            return False
         role = guild.get_role(int(settings.DISCORD_MEMBER_ROLE_ID))
         if not role:
             logger.warning("Member role not found")
@@ -39,12 +48,13 @@ async def assign_member_role(discord_id: str) -> bool:
 
 async def has_member_role(discord_id: str) -> bool:
     try:
-        guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
+        guild = await _get_guild()
         if not guild:
             return False
-        member = guild.get_member(int(discord_id))
-        if not member:
-            member = await guild.fetch_member(int(discord_id))
+        try:
+            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
+        except Exception:
+            return False
         role_id = int(settings.DISCORD_MEMBER_ROLE_ID)
         return any(r.id == role_id for r in member.roles)
     except Exception as e:
@@ -54,12 +64,14 @@ async def has_member_role(discord_id: str) -> bool:
 
 async def assign_verified_role(discord_id: str) -> bool:
     try:
-        guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
+        guild = await _get_guild()
         if not guild:
             return False
-        member = guild.get_member(int(discord_id))
-        if not member:
-            member = await guild.fetch_member(int(discord_id))
+        try:
+            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
+        except Exception:
+            logger.warning(f"Member {discord_id} not found in guild")
+            return False
         role = guild.get_role(int(settings.DISCORD_VERIFIED_ROLE_ID))
         if not role:
             logger.warning("Verified role not found")
@@ -74,12 +86,13 @@ async def assign_verified_role(discord_id: str) -> bool:
 
 async def has_verified_role(discord_id: str) -> bool:
     try:
-        guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
+        guild = await _get_guild()
         if not guild:
             return False
-        member = guild.get_member(int(discord_id))
-        if not member:
-            member = await guild.fetch_member(int(discord_id))
+        try:
+            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
+        except Exception:
+            return False
         role_id = int(settings.DISCORD_VERIFIED_ROLE_ID)
         return any(r.id == role_id for r in member.roles)
     except Exception as e:
@@ -89,12 +102,14 @@ async def has_verified_role(discord_id: str) -> bool:
 
 async def remove_member_role(discord_id: str) -> bool:
     try:
-        guild = bot.get_guild(int(settings.DISCORD_GUILD_ID))
+        guild = await _get_guild()
         if not guild:
             return False
-        member = guild.get_member(int(discord_id))
-        if not member:
-            member = await guild.fetch_member(int(discord_id))
+        try:
+            member = guild.get_member(int(discord_id)) or await guild.fetch_member(int(discord_id))
+        except Exception:
+            logger.warning(f"Member {discord_id} not found in guild")
+            return False
         role = guild.get_role(int(settings.DISCORD_MEMBER_ROLE_ID))
         if not role:
             return False

@@ -138,6 +138,33 @@ async def list_members(
         ))
     return items
 
+@router.post("/sync-discord-roles")
+async def sync_discord_roles(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    from app.services.discord_bot import assign_member_role
+
+    result = await db.execute(
+        select(User).join(Membership, Membership.user_id == User.id).where(
+            Membership.status == "active",
+            User.is_active == True,
+        )
+    )
+    members = result.scalars().all()
+
+    assigned = 0
+    failed = 0
+    for user in members:
+        success = await assign_member_role(user.discord_id)
+        if success:
+            assigned += 1
+        else:
+            failed += 1
+
+    return {"assigned": assigned, "failed": failed, "total": len(members)}
+
+
 @router.post("/email-blast")
 async def send_email_blast(
     data: EmailBlastRequest,
@@ -200,6 +227,20 @@ async def override_membership(
             membership.start_date = datetime.utcnow()
             membership.end_date = datetime.utcnow() + timedelta(days=365)
     await db.commit()
+
+    if data.status == "active":
+        try:
+            from app.services.discord_bot import assign_member_role
+            await assign_member_role(user.discord_id)
+        except Exception:
+            pass
+    elif data.status == "expired":
+        try:
+            from app.services.discord_bot import remove_member_role
+            await remove_member_role(user.discord_id)
+        except Exception:
+            pass
+
     return MemberListItem(
         id=user.id,
         discord_id=user.discord_id,
