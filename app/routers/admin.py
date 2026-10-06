@@ -128,9 +128,11 @@ async def list_members(
         membership = membership_result.scalar_one_or_none()
         items.append(MemberListItem(
             id=user.id,
+            discord_id=user.discord_id,
             discord_username=user.discord_username,
             email=user.email,
             role=user.role,
+            is_active=user.is_active,
             membership_status=membership.status if membership else None,
             membership_end_date=membership.end_date if membership else None,
         ))
@@ -200,9 +202,49 @@ async def override_membership(
     await db.commit()
     return MemberListItem(
         id=user.id,
+        discord_id=user.discord_id,
         discord_username=user.discord_username,
         email=user.email,
         role=user.role,
+        is_active=user.is_active,
         membership_status=membership.status,
         membership_end_date=membership.end_date,
     )
+
+
+@router.patch("/users/{user_id}/reactivate")
+async def reactivate_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    await db.commit()
+    return {"message": "User reactivated"}
+
+
+@router.delete("/users/{user_id}/membership")
+async def remove_membership(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    membership_result = await db.execute(select(Membership).where(Membership.user_id == user_id))
+    membership = membership_result.scalar_one_or_none()
+    if membership:
+        membership.status = "expired"
+        await db.commit()
+
+    from app.services.discord_bot import remove_member_role
+    await remove_member_role(user.discord_id)
+
+    return {"message": "Membership removed"}

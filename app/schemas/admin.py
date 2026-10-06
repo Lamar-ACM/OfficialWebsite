@@ -29,9 +29,11 @@ class StatsResponse(BaseModel):
 
 class MemberListItem(BaseModel):
     id: str
+    discord_id: str
     discord_username: str
     email: Optional[str] = None
     role: str
+    is_active: bool = True
     membership_status: Optional[str] = None
     membership_end_date: Optional[datetime] = None
 
