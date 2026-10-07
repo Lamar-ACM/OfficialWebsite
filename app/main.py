@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import auth, membership, events, announcements, tickets, admin
+from app.routers import auth, membership, events, announcements, tickets, admin, challenges
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ app.include_router(events.router)
 app.include_router(announcements.router)
 app.include_router(tickets.router)
 app.include_router(admin.router)
+app.include_router(challenges.router)
 
 
 @app.get("/health")

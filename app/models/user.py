@@ -22,3 +22,6 @@ class User(Base):
     membership: Mapped[Optional["Membership"]] = relationship("Membership", back_populates="user", uselist=False)
     tickets: Mapped[List["Ticket"]] = relationship("Ticket", back_populates="user")
     rsvps: Mapped[List["EventRSVP"]] = relationship("EventRSVP", back_populates="user")
+    challenge_submissions: Mapped[List["ChallengeSubmission"]] = relationship(
+        "ChallengeSubmission", foreign_keys="ChallengeSubmission.user_id", back_populates="user"
+    )
