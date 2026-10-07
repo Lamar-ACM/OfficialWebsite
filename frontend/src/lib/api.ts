@@ -42,3 +42,22 @@ api.interceptors.response.use(
 )
 
 export default api
+
+import type { ChallengesResponse, AdminSubmission } from '../types'
+
+export const challengesApi = {
+  getMyChallenges: (): Promise<{ data: ChallengesResponse }> =>
+    api.get('/challenges'),
+
+  submit: (challengeId: number, proofUrl: string, note?: string): Promise<unknown> =>
+    api.post(`/challenges/${challengeId}/submit`, { proof_url: proofUrl, note }),
+
+  adminListSubmissions: (status?: string): Promise<{ data: AdminSubmission[] }> =>
+    api.get('/challenges/admin/submissions', { params: status ? { status } : {} }),
+
+  adminReview: (submissionId: string, status: 'approved' | 'rejected', reviewerNotes?: string): Promise<unknown> =>
+    api.patch(`/challenges/admin/submissions/${submissionId}/review`, {
+      status,
+      reviewer_notes: reviewerNotes,
+    }),
+}

@@ -64,3 +64,43 @@ export interface AdminStats {
   in_progress_tickets: number
   upcoming_events: number
 }
+
+export interface ChallengeSubmission {
+  id: string
+  challenge_id: number
+  proof_url: string
+  note: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  submitted_at: string
+  reviewed_at: string | null
+  reviewer_notes: string | null
+}
+
+export interface ChallengeItem {
+  id: number
+  title: string
+  description: string
+  submission: ChallengeSubmission | null
+}
+
+export interface ChallengesResponse {
+  challenges: ChallengeItem[]
+  approved_count: number
+  required: number
+  membership_granted: boolean
+}
+
+export interface AdminSubmission {
+  id: string
+  challenge_id: number
+  challenge_title: string
+  proof_url: string
+  note: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  submitted_at: string
+  reviewed_at: string | null
+  reviewer_notes: string | null
+  user_id: string
+  discord_username: string
+  discord_avatar: string | null
+}

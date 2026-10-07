@@ -31,6 +31,7 @@ export function Navbar() {
             <NavLink to="/events" className={linkClass}>Events</NavLink>
             <NavLink to="/announcements" className={linkClass}>Announcements</NavLink>
             {isAuthenticated && <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>}
+            {isAuthenticated && <NavLink to="/challenges" className={linkClass}>Challenges</NavLink>}
             {isAdmin && <NavLink to="/admin" className={linkClass}>Admin</NavLink>}
           </div>
 
@@ -113,6 +114,11 @@ export function Navbar() {
           {isAuthenticated && (
             <button onClick={() => handleNav('/dashboard')} className="w-full text-left px-2 py-3 text-sm font-medium text-gray-700 hover:text-primary rounded-lg hover:bg-gray-50 transition-colors">
               Dashboard
+            </button>
+          )}
+          {isAuthenticated && (
+            <button onClick={() => handleNav('/challenges')} className="w-full text-left px-2 py-3 text-sm font-medium text-gray-700 hover:text-primary rounded-lg hover:bg-gray-50 transition-colors">
+              Challenges
             </button>
           )}
           {isAdmin && (

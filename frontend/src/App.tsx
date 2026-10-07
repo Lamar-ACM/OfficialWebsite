@@ -26,6 +26,8 @@ import AdminEvents from './pages/admin/AdminEvents'
 import AdminAnnouncements from './pages/admin/AdminAnnouncements'
 import AdminTickets from './pages/admin/AdminTickets'
 import AdminTicketDetail from './pages/admin/AdminTicketDetail'
+import AdminChallenges from './pages/admin/AdminChallenges'
+import Challenges from './pages/Challenges'
 
 const queryClient = new QueryClient()
 
@@ -51,6 +53,7 @@ export default function App() {
               <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
               <Route path="/tickets/new" element={<ProtectedRoute><TicketNew /></ProtectedRoute>} />
               <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetail /></ProtectedRoute>} />
+              <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminLayout /></ProtectedRoute>}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<AdminUsers />} />
@@ -58,6 +61,7 @@ export default function App() {
                 <Route path="announcements" element={<AdminAnnouncements />} />
                 <Route path="tickets" element={<AdminTickets />} />
                 <Route path="tickets/:id" element={<AdminTicketDetail />} />
+                <Route path="challenges" element={<AdminChallenges />} />
               </Route>
             </Routes>
           </Layout>

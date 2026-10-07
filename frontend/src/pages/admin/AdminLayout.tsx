@@ -6,6 +6,7 @@ const navItems = [
   { to: '/admin/events', label: 'Events' },
   { to: '/admin/announcements', label: 'Announcements' },
   { to: '/admin/tickets', label: 'Tickets' },
+  { to: '/admin/challenges', label: 'Challenges' },
 ]
 
 export default function AdminLayout() {
